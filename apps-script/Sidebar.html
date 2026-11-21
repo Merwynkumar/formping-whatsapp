@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --fg: #1f2a24; --muted: #5f6b65; --line: #e2e8e4; --card: #f6f9f7;
+      --accent: #128c4a; --accent-soft: #e6f4ec; --danger: #c5221f; --warn: #b06000;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 12px; font: 13px/1.45 "Google Sans", Roboto, Arial, sans-serif; color: var(--fg); }
+    h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    section { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; background: #fff; }
+    label { display: block; font-weight: 500; margin: 10px 0 4px; }
+    label:first-of-type { margin-top: 0; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    input[type=text], input[type=tel], select, textarea {
+      width: 100%; padding: 7px 8px; border: 1px solid #c8d1cc; border-radius: 6px; font: inherit; color: inherit; background: #fff;
+    }
+    textarea { resize: vertical; min-height: 56px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row > .cc { width: 64px; flex: none; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .chip {
+      border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 3px 9px;
+      font-size: 12px; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .chip.sys { background: var(--accent-soft); }
+    button {
+      font: inherit; font-weight: 500; border-radius: 6px; padding: 7px 12px; cursor: pointer;
+      border: 1px solid #c8d1cc; background: #fff; color: var(--fg);
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button:disabled { opacity: .55; cursor: default; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .toggle { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .switch { position: relative; width: 38px; height: 22px; flex: none; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #c8d1cc; border-radius: 999px; transition: .15s; cursor: pointer; }
+    .slider:before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .15s; }
+    .switch input:checked + .slider { background: var(--accent); }
+    .switch input:checked + .slider:before { transform: translateX(16px); }
+    .switch input:disabled + .slider { cursor: not-allowed; opacity: .6; }
+    .state { font-weight: 600; }
+    .state.on { color: var(--accent); } .state.off { color: var(--muted); }
+    .badge { font-size: 10px; font-weight: 700; background: #fde7c2; color: var(--warn); padding: 1px 6px; border-radius: 4px; margin-left: 4px; vertical-align: middle; }
+    .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 6px 0; }
+    .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+    .bar.full > div { background: var(--danger); }
+    .usage { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .preview { background: #dcf8c6; border-radius: 8px; padding: 8px 10px; font-size: 12px; white-space: pre-wrap; word-break: break-word; margin-top: 8px; }
+    #toast { position: fixed; left: 12px; right: 12px; bottom: 12px; padding: 9px 12px; border-radius: 8px; color: #fff; background: #1f2a24; display: none; z-index: 5; }
+    #toast.err { background: var(--danger); }
+    .muted { color: var(--muted); }
+    .hidden { display: none !important; }
+    #loading { color: var(--muted); padding: 24px 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading FormPing…</div>
+
+  <div id="app" class="hidden">
+    <!-- Status -->
+    <section>
+      <div class="toggle">
+        <div>
+          <div style="font-weight:600">Notifications</div>
+          <div class="state off" id="stateLabel">Paused</div>
+        </div>
+        <label class="switch" title="Active / Paused">
+          <input type="checkbox" id="activeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="hint" id="lastRun"></div>
+    </section>
+
+    <!-- Owner -->
+    <section>
+      <h2>Your WhatsApp</h2>
+      <label for="ownerPhone">Owner WhatsApp number</label>
+      <input type="tel" id="ownerPhone" placeholder="+91 98765 43210" autocomplete="tel">
+      <div class="hint">Include the country code. This number gets a message on every response.</div>
+
+      <label for="ownerMessage">Message details</label>
+      <textarea id="ownerMessage" data-var-target placeholder="{{All Answers}}"></textarea>
+      <div class="chips" id="chips"></div>
+      <div class="hint">Click a chip to insert a form answer at the cursor.</div>
+      <div class="preview" id="ownerPreview"></div>
+    </section>
+
+    <!-- Customer -->
+    <section>
+      <div class="toggle">
+        <h2 style="margin:0">Customer auto-reply <span class="badge" id="proBadge">PRO</span></h2>
+        <label class="switch">
+          <input type="checkbox" id="customerEnabled">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="hint" id="customerHint">Send the respondent an instant WhatsApp confirmation.</div>
+
+      <div id="customerFields">
+        <label for="customerPhoneQuestion">Question with customer's phone</label>
+        <select id="customerPhoneQuestion"><option value="">Select a question…</option></select>
+
+        <label for="defaultCountryCode">Default country code</label>
+        <div class="row">
+          <input type="text" id="defaultCountryCode" class="cc" placeholder="91" inputmode="numeric">
+          <span class="hint" style="margin:0">Used when a respondent types a number without one.</span>
+        </div>
+
+        <label for="customerName">Greeting name</label>
+        <input type="text" id="customerName" data-var-target placeholder="{{Name}}">
+
+        <label for="customerMessage">Reply text</label>
+        <textarea id="customerMessage" data-var-target></textarea>
+        <div class="preview" id="customerPreview"></div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="primary" id="saveBtn">Save settings</button>
+      <button id="testBtn">Send Test WhatsApp</button>
+    </div>
+
+    <!-- Plan -->
+    <section style="margin-top:12px">
+      <h2>Plan &amp; Usage</h2>
+      <div id="planBlock">
+        <div class="usage"><span id="usageText">–</span><span id="planName"></span></div>
+        <div class="bar" id="bar"><div></div></div>
+        <div class="hint" id="resetText"></div>
+        <div class="actions" id="upgradeActions">
+          <button class="primary" data-currency="USD">Upgrade $12/mo</button>
+          <button class="primary" data-currency="INR">Upgrade ₹499/mo</button>
+        </div>
+        <div class="hint" id="checkoutLink"></div>
+      </div>
+      <div class="hint" id="statusError"></div>
+    </section>
+    <div class="hint muted" id="account"></div>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+  var state = { data: null, lastField: null };
+
+  function $(id) { return document.getElementById(id); }
+
+  function toast(msg, isErr) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.className = isErr ? 'err' : '';
+    t.style.display = 'block';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.style.display = 'none'; }, isErr ? 6000 : 3000);
+  }
+
+  function run(fn, args, onOk, btn) {
+    if (btn) btn.disabled = true;
+    var r = google.script.run
+      .withSuccessHandler(function (res) { if (btn) btn.disabled = false; onOk && onOk(res); })
+      .withFailureHandler(function (err) { if (btn) btn.disabled = false; toast(err.message || String(err), true); });
+    r[fn].apply(r, args || []);
+  }
+
+  function load() {
+    run('getSidebarData', [], function (d) {
+      state.data = d;
+      $('loading').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      render();
+    });
+  }
+
+  function render() {
+    var d = state.data, c = d.config;
+    $('ownerPhone').value = c.ownerPhone || '';
+    $('ownerMessage').value = c.ownerMessage || '';
+    $('defaultCountryCode').value = c.defaultCountryCode || '';
+    $('customerName').value = c.customerName || '';
+    $('customerMessage').value = c.customerMessage || '';
+    $('customerEnabled').checked = !!c.customerEnabled;
+
+    // Phone question dropdown (likely phone questions first).
+    var sel = $('customerPhoneQuestion');
+    while (sel.options.length > 1) sel.remove(1);
+    var qs = d.questions.slice().sort(function (a, b) {
+      return phoneScore(b.title) - phoneScore(a.title);
+    });
+    qs.forEach(function (q) {
+      var o = document.createElement('option');
+      o.value = q.title; o.textContent = q.title;
+      sel.appendChild(o);
+    });
+    sel.value = c.customerPhoneQuestion || '';
+
+    // Variable chips.
+    var chips = $('chips');
+    chips.innerHTML = '';
+    var sys = ['All Answers', 'Form Title', 'Timestamp', 'Respondent Email'];
+    sys.forEach(function (n) { chips.appendChild(chip(n, true)); });
+    d.questions.forEach(function (q) { chips.appendChild(chip(q.title, false)); });
+
+    // Default greeting to a "name" question if empty.
+    if (!c.customerName) {
+      var nameQ = d.questions.filter(function (q) { return /name/i.test(q.title); })[0];
+      if (nameQ) $('customerName').value = '{{' + nameQ.title + '}}';
+    }
+
+    setActiveUi(d.triggerActive);
+    renderLastRun(d.lastRun);
+    renderStatus(d.status, d.statusError);
+    $('account').textContent = 'Signed in as ' + d.email;
+    updatePreview();
+  }
+
+  function phoneScore(t) { return /phone|whatsapp|mobile|cell|contact/i.test(t) ? 1 : 0; }
+
+  function chip(name, sys) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (sys ? ' sys' : '');
+    b.textContent = '{{' + name + '}}';
+    b.title = 'Insert ' + name;
+    b.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep focus/caret
+    b.addEventListener('click', function () { insertVar('{{' + name + '}}'); });
+    return b;
+  }
+
+  function insertVar(token) {
+    var el = state.lastField || $('ownerMessage');
+    var start = el.selectionStart != null ? el.selectionStart : el.value.length;
+    var end = el.selectionEnd != null ? el.selectionEnd : el.value.length;
+    el.value = el.value.slice(0, start) + token + el.value.slice(end);
+    el.focus();
+    el.selectionStart = el.selectionEnd = start + token.length;
+    updatePreview();
+  }
+
+  function sampleRender(tpl) {
+    return String(tpl || '').replace(/\{\{\s*([^{}]+?)\s*\}\}/g, function (_, n) { return '[' + n + ']'; });
+  }
+
+  function updatePreview() {
+    var d = state.data; if (!d) return;
+    $('ownerPreview').textContent = 'New response on ' + d.formTitle + ': ' +
+      sampleRender($('ownerMessage').value || '{{All Answers}}');
+    $('customerPreview').textContent = 'Hi ' + (sampleRender($('customerName').value) || 'there') +
+      ', thanks for submitting ' + d.formTitle + '. ' + sampleRender($('customerMessage').value);
+  }
+
+  function setActiveUi(active) {
+    $('activeToggle').checked = !!active;
+    var l = $('stateLabel');
+    l.textContent = active ? 'Active: sending on every response' : 'Paused';
+    l.className = 'state ' + (active ? 'on' : 'off');
+  }
+
+  function renderLastRun(r) {
+    if (!r) { $('lastRun').textContent = ''; return; }
+    var s = 'Last response ' + new Date(r.at).toLocaleString() + ': owner ' + (r.owner || 'n/a');
+    if (r.customer) s += ', customer ' + r.customer;
+    $('lastRun').textContent = s;
+  }
+
+  function renderStatus(s, err) {
+    $('statusError').textContent = err ? 'Could not load plan: ' + err : '';
+    $('planBlock').classList.toggle('hidden', !s);
+    if (!s) return;
+    var used = s.messages_used, limit = s.monthly_limit, pro = s.plan === 'pro';
+    $('usageText').textContent = used + ' / ' + limit + (pro ? ' Pro' : ' free') + ' messages used';
+    $('planName').textContent = pro ? 'Pro' : 'Free';
+    var pct = Math.min(100, Math.round(used / Math.max(limit, 1) * 100));
+    $('bar').firstElementChild.style.width = pct + '%';
+    $('bar').classList.toggle('full', used >= limit);
+    $('resetText').textContent = s.resets_at ? 'Resets ' + new Date(s.resets_at).toLocaleDateString() : '';
+    $('upgradeActions').classList.toggle('hidden', pro);
+    $('proBadge').classList.toggle('hidden', pro);
+
+    var ce = $('customerEnabled');
+    ce.disabled = !pro;
+    if (!pro) ce.checked = false;
+    $('customerHint').textContent = pro
+      ? 'Send the respondent an instant WhatsApp confirmation.'
+      : 'Upgrade to Pro to auto-reply to respondents on WhatsApp.';
+    $('customerFields').classList.toggle('hidden', !pro);
+  }
+
+  function collect() {
+    return {
+      ownerPhone: $('ownerPhone').value,
+      ownerMessage: $('ownerMessage').value,
+      defaultCountryCode: $('defaultCountryCode').value,
+      customerEnabled: $('customerEnabled').checked,
+      customerPhoneQuestion: $('customerPhoneQuestion').value,
+      customerName: $('customerName').value,
+      customerMessage: $('customerMessage').value
+    };
+  }
+
+  // Wiring
+  document.querySelectorAll('[data-var-target]').forEach(function (el) {
+    el.addEventListener('focus', function () { state.lastField = el; });
+    el.addEventListener('input', updatePreview);
+  });
+
+  $('saveBtn').addEventListener('click', function () {
+    run('saveSettings', [collect()], function (cfg) {
+      state.data.config = cfg;
+      toast('Settings saved');
+    }, $('saveBtn'));
+  });
+
+  $('testBtn').addEventListener('click', function () {
+    var btn = $('testBtn');
+    run('saveSettings', [collect()], function (cfg) {
+      state.data.config = cfg;
+      run('sendTestMessage', [], function (res) {
+        toast('Test sent. Check WhatsApp.');
+        if (res && res.usage) renderStatus(Object.assign({}, state.data.status, res.usage), null);
+        refreshStatus();
+      }, btn);
+    }, btn);
+  });
+
+  $('activeToggle').addEventListener('change', function (e) {
+    var want = e.target.checked;
+    var revert = function (err) {
+      setActiveUi(!want);
+      toast(err.message || String(err), true);
+    };
+    var go = function () {
+      google.script.run
+        .withSuccessHandler(function (r) {
+          state.data.triggerActive = r.active;
+          setActiveUi(r.active);
+          toast(r.active ? 'FormPing is active' : 'FormPing paused');
+        })
+        .withFailureHandler(revert)
+        .setActive(want);
+    };
+    if (want) {
+      // Save first so the trigger uses what is on screen.
+      google.script.run
+        .withSuccessHandler(function (cfg) { state.data.config = cfg; go(); })
+        .withFailureHandler(revert)
+        .saveSettings(collect());
+    } else {
+      go();
+    }
+  });
+
+  document.querySelectorAll('[data-currency]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var cur = b.getAttribute('data-currency');
+      $('checkoutLink').textContent = 'Preparing secure checkout…';
+      run('createCheckout', [cur], function (url) {
+        var w = window.open(url, '_blank');
+        var box = $('checkoutLink');
+        box.textContent = '';
+        var a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = 'Open Razorpay checkout';
+        box.appendChild(document.createTextNode(w ? 'Checkout opened in a new tab. ' : ''));
+        box.appendChild(a);
+        box.appendChild(document.createTextNode(' Then reopen FormPing to see Pro.'));
+      }, b);
+    });
+  });
+
+  function refreshStatus() {
+    run('getStatusForSidebar', [], function (s) { state.data.status = s; renderStatus(s, null); });
+  }
+
+  load();
+</script>
+</body>
+</html>
