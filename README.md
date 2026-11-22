@@ -140,10 +140,30 @@ Local dev: `cd web && npm run dev` → http://localhost:3000.
 3. WhatsApp → API Setup → copy the **Phone number ID** → `META_PHONE_NUMBER_ID`.
 4. WhatsApp Manager → **Message templates** → create two templates, category **Utility**, language **English (en)**:
 
-   | Name | Body | Params |
-   |------|------|--------|
-   | `formping_owner_alert` | `New response on {{1}}: {{2}}` | 1 = form title, 2 = the owner's "Message details" |
-   | `formping_auto_reply` | `Hi {{1}}, thanks for submitting {{2}}. {{3}}` | 1 = greeting name, 2 = form title, 3 = reply text |
+   | Name | Params |
+   |------|--------|
+   | `formping_owner_alert` | 1 = form title, 2 = the owner's "Message details" |
+   | `formping_auto_reply` | 1 = greeting name, 2 = form title, 3 = reply text |
+
+   `formping_owner_alert` body:
+   ```
+   You have a new response on your form {{1}}.
+
+   Details: {{2}}
+
+   This is an automated alert from FormPing for Google Forms.
+   ```
+
+   `formping_auto_reply` body:
+   ```
+   Hi {{1}}, thank you for submitting {{2}}.
+
+   {{3}}
+
+   This is an automated confirmation sent on behalf of the form owner via FormPing.
+   ```
+
+   Meta rejects bodies that start or end with a variable, or that have too many variables for their length, which is why each body has fixed text around the variables.
 
    Give sample values when submitting (e.g. `Contact form`, `Name: Asha | Phone: +91…`). Wait for **Approved**. If you change the names, language or number of params, update the `META_TEMPLATE_*` env vars.
 

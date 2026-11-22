@@ -10,8 +10,9 @@ import { optionalEnv, requireEnv } from "./env";
  * using our WABA to send arbitrary approved templates.
  *
  * Templates to create in WhatsApp Manager (category: UTILITY), see README:
- *   formping_owner_alert   body: "New response on {{1}}: {{2}}"            (2 params)
- *   formping_auto_reply    body: "Hi {{1}}, thanks for submitting {{2}}. {{3}}" (3 params)
+ *   formping_owner_alert   "You have a new response on your form {{1}}. Details: {{2}} ..."  (2 params)
+ *   formping_auto_reply    "Hi {{1}}, thank you for submitting {{2}}. {{3}} ..."           (3 params)
+ * Exact bodies are in the README.
  */
 
 export type MessageKind = "owner" | "customer" | "test";

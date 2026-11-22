@@ -249,10 +249,12 @@
 
   function updatePreview() {
     var d = state.data; if (!d) return;
-    $('ownerPreview').textContent = 'New response on ' + d.formTitle + ': ' +
-      sampleRender($('ownerMessage').value || '{{All Answers}}');
+    $('ownerPreview').textContent = 'You have a new response on your form ' + d.formTitle + '.\n\nDetails: ' +
+      sampleRender($('ownerMessage').value || '{{All Answers}}') +
+      '\n\nThis is an automated alert from FormPing for Google Forms.';
     $('customerPreview').textContent = 'Hi ' + (sampleRender($('customerName').value) || 'there') +
-      ', thanks for submitting ' + d.formTitle + '. ' + sampleRender($('customerMessage').value);
+      ', thank you for submitting ' + d.formTitle + '.\n\n' + sampleRender($('customerMessage').value) +
+      '\n\nThis is an automated confirmation sent on behalf of the form owner via FormPing.';
   }
 
   function setActiveUi(active) {
