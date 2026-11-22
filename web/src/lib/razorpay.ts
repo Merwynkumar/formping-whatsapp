@@ -11,9 +11,20 @@ import type { Currency } from "./plans";
 
 const API = "https://api.razorpay.com/v1";
 
+/**
+ * Live keys (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET) win when set; otherwise
+ * fall back to test keys (RAZORPAY_TEST_KEY_ID / RAZORPAY_TEST_KEY_SECRET).
+ * Id and secret always come from the same pair.
+ */
+function keyPair(): { id: string; secret: string } {
+  if (optionalEnv("RAZORPAY_KEY_ID")) {
+    return { id: requireEnv("RAZORPAY_KEY_ID"), secret: requireEnv("RAZORPAY_KEY_SECRET") };
+  }
+  return { id: requireEnv("RAZORPAY_TEST_KEY_ID"), secret: requireEnv("RAZORPAY_TEST_KEY_SECRET") };
+}
+
 function authHeader(): string {
-  const id = requireEnv("RAZORPAY_KEY_ID");
-  const secret = requireEnv("RAZORPAY_KEY_SECRET");
+  const { id, secret } = keyPair();
   return "Basic " + Buffer.from(`${id}:${secret}`).toString("base64");
 }
 

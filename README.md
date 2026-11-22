@@ -116,6 +116,7 @@ vercel env add META_WHATSAPP_TOKEN production
 vercel env add META_PHONE_NUMBER_ID production
 vercel env add RAZORPAY_KEY_ID production
 vercel env add RAZORPAY_KEY_SECRET production
+# (Test mode instead: RAZORPAY_TEST_KEY_ID + RAZORPAY_TEST_KEY_SECRET. The live pair wins when both are set.)
 vercel env add RAZORPAY_WEBHOOK_SECRET production
 vercel env add RAZORPAY_PLAN_ID_USD production
 vercel env add RAZORPAY_PLAN_ID_INR production
